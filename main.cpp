@@ -1,3 +1,4 @@
+#include <chrono>
 #include <stdexcept>
 #include <EGL/egl.h>
 #include <GLES2/gl2.h>
@@ -22,6 +23,11 @@ EGLSurface surface;
 
 void *zmqContext;
 void *sender;
+
+
+GLint timeAttributeLocation;
+GLint resolutionAttributeLocation;
+    
 
 void destroy() {
     zmq_close(sender);
@@ -138,7 +144,7 @@ void initOpenGL() {
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
     if (!success) {
         char infoLog[512];
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+        glGetShaderInfoLog(vertexShader, 512, nullptr, infoLog);
         std::cout << "Compiler Error: " << infoLog << std::endl;
         throw std::runtime_error("Failed to compile vertex shader\n");
     }
@@ -149,7 +155,7 @@ void initOpenGL() {
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
     if (!success) {
         char infoLog[512];
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+        glGetShaderInfoLog(vertexShader, 512, nullptr, infoLog);
         std::cout << "Compiler Error: " << infoLog << std::endl;
         throw std::runtime_error("Failed to compile fragment shader\n");
     }
@@ -161,7 +167,7 @@ void initOpenGL() {
     glGetProgramiv(program, GL_LINK_STATUS, &success);
     if(!success) {
         char infoLog[512];
-        glGetProgramInfoLog(program, 512, NULL, infoLog);
+        glGetProgramInfoLog(program, 512, nullptr, infoLog);
         std::cout << "Link Error: " << infoLog << std::endl;
         throw std::runtime_error("Failed to link shaders\n");
     }
@@ -170,6 +176,9 @@ void initOpenGL() {
     
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
+
+    timeAttributeLocation = glGetUniformLocation(program, "time");
+    resolutionAttributeLocation = glGetUniformLocation(program, "res");
 }
 
 // TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
@@ -183,10 +192,18 @@ void initOpenGL() {
     initEGL();
     initOpenGL();
 
+    
+    std::chrono::high_resolution_clock::time_point lastFrameTime = std::chrono::high_resolution_clock::now();
     while (true) {
+        auto currentFrameTime = std::chrono::high_resolution_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currentFrameTime - lastFrameTime);
+        
         glClearColor(1.0, 0.0, 0.0, 1.0); // Red background
         glClear(GL_COLOR_BUFFER_BIT);
 
+        glUniform1f(timeAttributeLocation, static_cast<float>(elapsed.count()));
+        glUniform2f(resolutionAttributeLocation, WIDTH, HEIGHT);
+        
         glDrawArrays(GL_TRIANGLES, 0, 6);
         
         unsigned char pixels[WIDTH * HEIGHT * 3];
