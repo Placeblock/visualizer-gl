@@ -122,9 +122,9 @@ void Audio::start() {
             this->stop();
             throw std::runtime_error("Cannot read Audio Stream: " + std::to_string(err));
         }
-
-        for (float sample : paBuffer) {
-            this->amplitude = std::max(this->amplitude, std::abs(sample));
+        *this->amplitude = 0;
+        for (int i = 0; i < FRAMES_PER_BUFFER; ++i) {
+            *this->amplitude = std::max(*this->amplitude, std::abs(paBuffer[i]));
         }
 
         fftwf_execute(plan);

@@ -228,8 +228,7 @@ int main() {
 
         glUniform1f(timeAttributeLocation, static_cast<float>(elapsed.count()));
         glUniform2f(resolutionAttributeLocation, WIDTH, HEIGHT);
-        glUniform1f(amplitudeAttributeLocation, audio.amplitude);
-
+        glUniform1f(amplitudeAttributeLocation, *audio.amplitude);
         
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, fftSSBO);
         glBufferData(GL_SHADER_STORAGE_BUFFER, FFW_BANDS*sizeof(fftw_complex), *audio.result, GL_DYNAMIC_DRAW); 

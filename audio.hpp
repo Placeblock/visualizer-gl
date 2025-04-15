@@ -5,7 +5,7 @@
 #ifndef AUDIO_HPP
 #define AUDIO_HPP
 
-#define FRAMES_PER_BUFFER 2048
+#define FRAMES_PER_BUFFER 1024
 #define FFW_BANDS (FRAMES_PER_BUFFER/2+1)
 #define LOG_BANDS 128
 #define LOG_MIN_FREQ 20
@@ -33,7 +33,7 @@ public:
 
     fftwf_complex* result = nullptr;
     std::shared_ptr<std::vector<float>> logResult = std::make_shared<std::vector<float>>(LOG_BANDS);
-    float amplitude;
+    std::shared_ptr<float> amplitude = std::make_shared<float>(0);
 };
 
 
