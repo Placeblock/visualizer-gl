@@ -7,6 +7,10 @@
 #include <fstream>
 #include <iostream>
 #include <sstream> //std::stringstream
+#include <thread>
+
+#include "audio.hpp"
+#include <glad/gl.h>
 
 constexpr int WIDTH = 128;
 constexpr int HEIGHT = 32;
@@ -24,9 +28,14 @@ EGLSurface surface;
 void *zmqContext;
 void *sender;
 
-
 GLint timeAttributeLocation;
 GLint resolutionAttributeLocation;
+GLint amplitudeAttributeLocation;
+GLuint fftSSBO;
+GLuint logFftSSBO;
+
+Audio audio;
+std::thread audioThread;
     
 
 void destroy() {
@@ -42,6 +51,7 @@ void destroy() {
 
 void intHandler(int _) {
     destroy();
+    audio.running = false;
 }
 
 void initZMQ() {
@@ -111,6 +121,9 @@ void initEGL() {
 }
 
 void initOpenGL() {
+    gladLoadGL(eglGetProcAddress); 
+    glViewport(0, 0, WIDTH, HEIGHT);
+    
     float vertices[] = {-1, -1, -1, 1, 1, 1, -1, -1, 1, -1, 1, 1};
     unsigned int VBO;
     glGenBuffers(1, &VBO);
@@ -179,19 +192,31 @@ void initOpenGL() {
 
     timeAttributeLocation = glGetUniformLocation(program, "time");
     resolutionAttributeLocation = glGetUniformLocation(program, "res");
+    amplitudeAttributeLocation = glGetUniformLocation(program, "amplitude");
+    
+    glGenBuffers(1, &fftSSBO);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, fftSSBO);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, fftSSBO);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+    
+    glGenBuffers(1, &logFftSSBO);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, logFftSSBO);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, logFftSSBO);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
 // TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-[[noreturn]] int main() {
-    signal(SIGINT, intHandler);
+int main() {
+    audio.init();
+    audioThread = std::thread(&Audio::start, audio);
+    audioThread.detach();
     
-    glViewport(0, 0, WIDTH, HEIGHT);
+    signal(SIGINT, intHandler);
 
     initZMQ();
     initEGL();
     initOpenGL();
-
     
     std::chrono::high_resolution_clock::time_point lastFrameTime = std::chrono::high_resolution_clock::now();
     while (true) {
@@ -203,6 +228,15 @@ void initOpenGL() {
 
         glUniform1f(timeAttributeLocation, static_cast<float>(elapsed.count()));
         glUniform2f(resolutionAttributeLocation, WIDTH, HEIGHT);
+        glUniform1f(amplitudeAttributeLocation, audio.amplitude);
+
+        
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, fftSSBO);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, FFW_BANDS*sizeof(fftw_complex), *audio.result, GL_DYNAMIC_DRAW); 
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, logFftSSBO);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, audio.logResult->size()*sizeof(float), audio.logResult->data(), GL_DYNAMIC_DRAW); 
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
         
         glDrawArrays(GL_TRIANGLES, 0, 6);
         
