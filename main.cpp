@@ -218,10 +218,13 @@ int main() {
     initEGL();
     initOpenGL();
     
+    std::chrono::high_resolution_clock::time_point startTime = std::chrono::high_resolution_clock::now();
     std::chrono::high_resolution_clock::time_point lastFrameTime = std::chrono::high_resolution_clock::now();
     while (true) {
         auto currentFrameTime = std::chrono::high_resolution_clock::now();
-        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currentFrameTime - lastFrameTime);
+        printf("%ld\n", std::chrono::duration_cast<std::chrono::milliseconds>(currentFrameTime - lastFrameTime).count());
+        lastFrameTime = currentFrameTime;
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currentFrameTime - startTime);
         
         glClearColor(1.0, 0.0, 0.0, 1.0); // Red background
         glClear(GL_COLOR_BUFFER_BIT);

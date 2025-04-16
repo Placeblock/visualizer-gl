@@ -5,7 +5,7 @@
 #ifndef AUDIO_HPP
 #define AUDIO_HPP
 
-#define FRAMES_PER_BUFFER 1024
+#define FRAMES_PER_BUFFER 256
 #define FFW_BANDS (FRAMES_PER_BUFFER/2+1)
 #define LOG_BANDS 128
 #define LOG_MIN_FREQ 20
